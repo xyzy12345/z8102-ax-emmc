@@ -12,11 +12,12 @@ on:
       openwrt_version:
         description: 'OpenWrt version'
         required: false
-        default: 'v24.07.0-rc4'
+        default: 'v23.05.5'
         type: choice
         options:
-          - v24.07.0-rc4
-          - v23.05.3
+          - v23.05.5
+          - v24.10.4
+          - openwrt-24.10
           - master
 
 jobs:
@@ -48,7 +49,7 @@ jobs:
 
       - name: Clone OpenWrt
         run: |
-          OPENWRT_VERSION="${{ github.event.inputs.openwrt_version || 'v24.07.0-rc4' }}"
+          OPENWRT_VERSION="${{ github.event.inputs.openwrt_version || 'v23.05.5' }}"
           echo "使用OpenWrt版本: ${OPENWRT_VERSION}"
           git clone --depth=1 https://github.com/openwrt/openwrt.git -b ${OPENWRT_VERSION}
 
