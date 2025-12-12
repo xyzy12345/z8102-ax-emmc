@@ -64,28 +64,40 @@ jobs:
           # 2. 添加设备定义（使用通用BL2）
           cat >> target/linux/mediatek/image/filogic.mk << 'EOF'
 
-          define Device/zbt_z8102ax_v2_generic
-            DEVICE_VENDOR := ZBT
-            DEVICE_MODEL := Z8102AX V2 (Generic BL2)
+          define Device/zbt_z8102ax_v2_emmc
+            DEVICE_VENDOR := Zbtlink
+            DEVICE_MODEL := ZBT-Z8102AX-V2 (eMMC)
             DEVICE_DTS := mt7981-zbt-z8102ax-v2
-            DEVICE_DTS_DIR := $(DTS_DIR)/mediatek
-            SUPPORTED_DEVICES := zbt,z8102ax-v2
-            ARTIFACTS := emmc-preloader.bin emmc-bl31-uboot.fip
-            ARTIFACT/emmc-preloader.bin := mt7981-bl2 emmc-ddr4 BL2_DEVICE=emmc
-            ARTIFACT/emmc-bl31-uboot.fip := copy-file $(TOPDIR)/prebuilt/zbt-z8102ax-v2/fip.bin
-            DEVICE_PACKAGES := kmod-mt7915e kmod-mt7915-firmware kmod-usb3 kmod-usb-storage
+            DEVICE_DTS_DIR := ../dts
+            DEVICE_PACKAGES := kmod-mt7915e kmod-mt7981-firmware mt7981-wo-firmware kmod-usb3 kmod-usb-storage e2fsprogs f2fsck mkf2fs
+            UBINIZE_OPTS := -E 5
             BLOCKSIZE := 128k
             PAGESIZE := 2048
+            IMAGE_SIZE := 65536k
             KERNEL_IN_UBI := 1
             IMAGES := sysupgrade.bin
             IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
+            ARTIFACTS := emmc-preloader.bin emmc-bl31-uboot.fip
+            ARTIFACT/emmc-preloader.bin := mt7981-bl2 emmc-ddr4
+            ARTIFACT/emmc-bl31-uboot.fip := copy-file $(TOPDIR)/prebuilt/zbt-z8102ax-v2/fip.bin
           endef
-          TARGET_DEVICES += zbt_z8102ax_v2_generic
+          TARGET_DEVICES += zbt_z8102ax_v2_emmc
           EOF
 
           # 3. 复制FIP文件
           mkdir -p prebuilt/zbt-z8102ax-v2
           cp ../prebuilt/zbt-z8102ax-v2/fip.bin prebuilt/zbt-z8102ax-v2/
+
+          # 4. 验证设备定义是否添加成功
+          echo "=== 验证设备定义 ==="
+          if grep -q "define Device/zbt_z8102ax_v2_emmc" target/linux/mediatek/image/filogic.mk; then
+            echo "✓ 设备定义已成功添加"
+            echo "设备定义内容："
+            grep -A 15 "define Device/zbt_z8102ax_v2_emmc" target/linux/mediatek/image/filogic.mk
+          else
+            echo "✗ 错误：设备定义添加失败"
+            exit 1
+          fi
 
           echo "设备集成完成"
 
@@ -109,12 +121,15 @@ jobs:
           make -j$(($(nproc) + 1)) V=s 2>&1 | tee build.log
 
           # 检查结果
-          if [ -f "bin/targets/mediatek/filogic/openwrt-mediatek-filogic-zbt_z8102ax_v2_generic-squashfs-sysupgrade.bin" ]; then
+          if [ -f "bin/targets/mediatek/filogic/openwrt-mediatek-filogic-zbt_z8102ax_v2_emmc-squashfs-sysupgrade.bin" ]; then
             echo "编译成功！"
             echo "输出文件："
             ls -lh bin/targets/mediatek/filogic/*.bin
+            ls -lh bin/targets/mediatek/filogic/*.fip 2>/dev/null || true
           else
             echo "编译失败"
+            echo "查找可能的输出文件："
+            find bin/targets/mediatek/filogic/ -name "*z8102ax*" -o -name "*.bin" | head -10
             tail -100 build.log
             exit 1
           fi
