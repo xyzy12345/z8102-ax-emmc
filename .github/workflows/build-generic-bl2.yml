@@ -43,12 +43,37 @@ jobs:
             zlib1g-dev gawk git gettext libssl-dev xsltproc wget \
             unzip python3 python3-setuptools rsync subversion swig \
             time xxd file
+          
+          # 配置git以提高网络容错性
+          git config --global http.lowSpeedLimit 1000
+          git config --global http.lowSpeedTime 600
+          git config --global http.postBuffer 524288000
 
       - name: Clone OpenWrt
         run: |
           OPENWRT_VERSION="${{ github.event.inputs.openwrt_version || 'v24.10.4' }}"
           echo "使用OpenWrt版本: ${OPENWRT_VERSION}"
-          git clone --depth=1 https://github.com/openwrt/openwrt.git -b ${OPENWRT_VERSION}
+          
+          # 添加重试逻辑以应对网络问题
+          MAX_RETRIES=3
+          RETRY_COUNT=0
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            echo "尝试克隆OpenWrt仓库 (尝试 $((RETRY_COUNT + 1))/$MAX_RETRIES)..."
+            if git clone --depth=1 https://github.com/openwrt/openwrt.git -b ${OPENWRT_VERSION}; then
+              echo "✓ 克隆成功"
+              break
+            else
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+              if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+                WAIT_TIME=$((RETRY_COUNT * 10))
+                echo "✗ 克隆失败，等待 ${WAIT_TIME} 秒后重试..."
+                sleep $WAIT_TIME
+              else
+                echo "✗ 克隆失败，已达到最大重试次数"
+                exit 1
+              fi
+            fi
+          done
 
       - name: Integrate device support
         run: |
@@ -103,16 +128,72 @@ jobs:
         run: |
           cd openwrt
 
-          # 更新feeds
-          ./scripts/feeds update -a
+          # 配置下载镜像源以提高可靠性
+          echo "=== 配置下载镜像源 ==="
+          cat >> .config << 'EOF'
+          # 使用多个镜像源提高下载成功率
+          CONFIG_DOWNLOAD_FOLDER=""
+          CONFIG_LOCALMIRROR=""
+          EOF
+          
+          # 设置环境变量启用镜像
+          export DOWNLOAD_TIMEOUT=60
+
+          # 更新feeds（带重试逻辑）
+          echo "=== 更新feeds ==="
+          MAX_RETRIES=3
+          RETRY_COUNT=0
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            echo "尝试更新feeds (尝试 $((RETRY_COUNT + 1))/$MAX_RETRIES)..."
+            if ./scripts/feeds update -a; then
+              echo "✓ Feeds更新成功"
+              break
+            else
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+              if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+                WAIT_TIME=$((RETRY_COUNT * 10))
+                echo "✗ Feeds更新失败，等待 ${WAIT_TIME} 秒后重试..."
+                sleep $WAIT_TIME
+              else
+                echo "✗ Feeds更新失败，已达到最大重试次数"
+                exit 1
+              fi
+            fi
+          done
+          
+          # 安装feeds
           ./scripts/feeds install -a
 
           # 应用配置
           cp ../config/openwrt-zbt-z8102ax-v2.config .config
           make defconfig
 
-          # 下载软件包
-          make download -j$(nproc)
+          # 下载软件包（带重试逻辑）
+          echo "=== 下载软件包 ==="
+          MAX_RETRIES=3
+          RETRY_COUNT=0
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            echo "尝试下载软件包 (尝试 $((RETRY_COUNT + 1))/$MAX_RETRIES)..."
+            if make download -j$(nproc); then
+              echo "✓ 软件包下载成功"
+              break
+            else
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+              if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+                WAIT_TIME=$((RETRY_COUNT * 15))
+                echo "✗ 软件包下载失败，等待 ${WAIT_TIME} 秒后重试..."
+                sleep $WAIT_TIME
+                # 尝试清理可能损坏的下载文件（忽略错误以便重试）
+                echo "清理可能损坏的下载..."
+                make download -j1 || true
+              else
+                echo "✗ 软件包下载失败，已达到最大重试次数"
+                echo "尝试以详细模式显示下载状态..."
+                make download -j1 V=s || echo "详细下载失败"
+                exit 1
+              fi
+            fi
+          done
 
           # 开始编译
           echo "开始编译..."

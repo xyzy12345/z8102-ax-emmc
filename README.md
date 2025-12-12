@@ -34,3 +34,14 @@ The base `dnsmasq` package conflicts with `dnsmasq-full` as they provide the sam
 ## Building
 
 The build is automated via GitHub Actions. See `.github/workflows/build-generic-bl2.yml` for the complete build process.
+
+### Network Resilience
+
+The build workflow includes several features to handle network issues:
+
+- **Retry Logic**: All network operations (git clone, feeds update, package downloads) automatically retry up to 3 times with exponential backoff
+- **Git Configuration**: Optimized git settings for better timeout handling and large transfers
+- **Download Timeout**: Configured timeout settings to prevent hanging on slow connections
+- **Verbose Logging**: Failed operations provide detailed output for debugging
+
+These improvements help ensure successful builds even when encountering temporary network issues.
