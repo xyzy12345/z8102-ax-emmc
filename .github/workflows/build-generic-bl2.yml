@@ -108,7 +108,7 @@ jobs:
           ./scripts/feeds install -a
 
           # 应用配置
-          cp ../config/openwrt-mt7981-zbt-z8102ax-v2.config .config
+          cp ../config/openwrt-zbt-z8102ax-v2.config .config
           make defconfig
 
           # 下载软件包
