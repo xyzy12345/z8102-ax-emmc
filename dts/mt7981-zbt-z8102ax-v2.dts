@@ -142,6 +142,14 @@
 		block {
 			compatible = "block-device";
 			partitions {
+				block-partition-env {
+					partname = "u-boot-env";
+
+					nvmem-layout {
+						compatible = "u-boot,env";
+					};
+				};
+
 				block-partition-factory {
 					partname = "factory";
 
