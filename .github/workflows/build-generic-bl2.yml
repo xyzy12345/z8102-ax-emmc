@@ -183,12 +183,14 @@ jobs:
                 WAIT_TIME=$((RETRY_COUNT * 15))
                 echo "✗ 软件包下载失败，等待 ${WAIT_TIME} 秒后重试..."
                 sleep $WAIT_TIME
-                # 清理可能损坏的下载文件
-                make download -j1 || true
+                # 尝试清理可能损坏的下载文件（忽略错误）
+                echo "清理可能损坏的下载..."
+                make download -j1 2>&1 | head -20 || echo "清理过程完成（可能有错误，将在重试时解决）"
               else
                 echo "✗ 软件包下载失败，已达到最大重试次数"
-                echo "尝试检查下载状态..."
-                make download -j1 V=s || true
+                echo "尝试以详细模式检查下载状态..."
+                make download -j1 V=s
+                echo "下载失败，退出构建"
                 exit 1
               fi
             fi
