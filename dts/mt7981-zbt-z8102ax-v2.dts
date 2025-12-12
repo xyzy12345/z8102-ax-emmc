@@ -134,6 +134,48 @@
 	vmmc-supply = <&reg_3p3v>;
 	non-removable;
 	status = "okay";
+
+	card@0 {
+		compatible = "mmc-card";
+		reg = <0>;
+
+		block {
+			compatible = "block-device";
+			partitions {
+				block-partition-env {
+					partname = "u-boot-env";
+
+					nvmem-layout {
+						compatible = "u-boot,env";
+					};
+				};
+
+				block-partition-factory {
+					partname = "factory";
+
+					nvmem-layout {
+						compatible = "fixed-layout";
+						#address-cells = <1>;
+						#size-cells = <1>;
+
+						eeprom_factory_0: eeprom@0 {
+							reg = <0x0 0x1000>;
+						};
+
+						macaddr_factory_4: macaddr@4 {
+							compatible = "mac-base";
+							reg = <0x4 0x6>;
+							#nvmem-cell-cells = <1>;
+						};
+
+						phy_calibration: calibration@18000 {
+							reg = <0x18000 0x1000>;
+						};
+					};
+				};
+			};
+		};
+	};
 };
 
 &eth {
@@ -143,7 +185,7 @@
 		compatible = "mediatek,eth-mac";
 		reg = <0>;
 		phy-mode = "2500base-x";
-		nvmem-cells = <&macaddr_factory_4>;
+		nvmem-cells = <&macaddr_factory_4 0>;
 		nvmem-cell-names = "mac-address";
 
 		fixed-link {
@@ -158,9 +200,8 @@
 		reg = <1>;
 		phy-mode = "gmii";
 		phy-handle = <&phy0>;
-		nvmem-cells = <&macaddr_factory_4>;
+		nvmem-cells = <&macaddr_factory_4 1>;
 		nvmem-cell-names = "mac-address";
-		mac-address-increment = <1>;
 	};
 
 	mdio: mdio-bus {
@@ -221,74 +262,7 @@
 	};
 };
 
-&hnat {
-	mtketh-wan = "eth1";
-	mtketh-lan = "lan";
-	mtketh-max-gmac = <2>;
-	status = "okay";
-};
 
-&wmac {
-	status = "okay";
-	mediatek,mtd-eeprom = <&factory 0x0>;
-	nvmem-cells = <&macaddr_factory_4>;
-	nvmem-cell-names = "mac-address";
-	mac-address-increment = <2>;
-};
-
-&spi_nand {
-	status = "okay";
-
-	partitions {
-		compatible = "fixed-partitions";
-		#address-cells = <1>;
-		#size-cells = <1>;
-
-		partition@0 {
-			label = "bl2";
-			reg = <0x0 0x100000>;
-			read-only;
-		};
-
-		partition@100000 {
-			label = "u-boot-env";
-			reg = <0x100000 0x80000>;
-		};
-
-		factory: partition@180000 {
-			label = "factory";
-			reg = <0x180000 0x200000>;
-			read-only;
-
-			nvmem-layout {
-				compatible = "fixed-layout";
-				#address-cells = <1>;
-				#size-cells = <1>;
-
-				macaddr_factory_4: macaddr@4 {
-					compatible = "mac-base";
-					reg = <0x4 0x6>;
-					#nvmem-cell-cells = <1>;
-				};
-
-				phy_calibration: calibration@18000 {
-					reg = <0x18000 0x1000>;
-				};
-			};
-		};
-
-		partition@380000 {
-			label = "fip";
-			reg = <0x380000 0x200000>;
-			read-only;
-		};
-
-		partition@580000 {
-			label = "ubi";
-			reg = <0x580000 0x4000000>;
-		};
-	};
-};
 
 &pio {
 	spic_pins: spi1-pins {
@@ -317,5 +291,11 @@
 	mediatek,u3p-dis-msk = <0x0>;
 	phys = <&u2port0 PHY_TYPE_USB2>,
 	       <&u3port0 PHY_TYPE_USB3>;
+	status = "okay";
+};
+
+&wifi {
+	nvmem-cells = <&eeprom_factory_0>, <&macaddr_factory_4 2>;
+	nvmem-cell-names = "eeprom", "mac-address";
 	status = "okay";
 };
