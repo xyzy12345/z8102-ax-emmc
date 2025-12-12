@@ -27,6 +27,10 @@ Some specialized packages are not available in the standard OpenWrt repository a
 
 The build uses standard OpenWrt packages for modem connectivity, which provide equivalent functionality for most use cases.
 
+### dnsmasq Package Conflict (Fixed)
+
+The base `dnsmasq` package conflicts with `dnsmasq-full` as they provide the same files. The configuration explicitly disables the base `dnsmasq` package with `# CONFIG_PACKAGE_dnsmasq is not set` to ensure only `dnsmasq-full` is installed.
+
 ## Building
 
 The build is automated via GitHub Actions. See `.github/workflows/build-generic-bl2.yml` for the complete build process.
