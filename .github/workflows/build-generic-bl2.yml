@@ -91,7 +91,6 @@ jobs:
             DEVICE_VENDOR := Zbtlink
             DEVICE_MODEL := ZBT-Z8102AX-V2 (eMMC)
             DEVICE_DTS := mt7981-zbt-z8102ax-v2
-            DEVICE_DTS_DIR := ../dts
             DEVICE_PACKAGES := kmod-mt7915e kmod-mt7981-firmware mt7981-wo-firmware kmod-usb3 kmod-usb-storage e2fsprogs f2fsck mkf2fs
             UBINIZE_OPTS := -E 5
             BLOCKSIZE := 128k
