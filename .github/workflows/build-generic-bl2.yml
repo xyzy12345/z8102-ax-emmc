@@ -95,9 +95,9 @@ jobs:
             DEVICE_PACKAGES := kmod-mt7915e kmod-mt7981-firmware mt7981-wo-firmware kmod-usb3 kmod-usb-storage e2fsprogs f2fsck mkf2fs
             IMAGES := sysupgrade.bin
             IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
-            ARTIFACTS := preloader.bin bl31-uboot.fip
-            ARTIFACT/preloader.bin := mt7981-bl2 emmc-ddr4
-            ARTIFACT/bl31-uboot.fip := copy-file $(TOPDIR)/prebuilt/zbt-z8102ax-v2/fip.bin
+            ARTIFACTS := emmc-preloader.bin emmc-bl31-uboot.fip
+            ARTIFACT/emmc-preloader.bin := mt7981-bl2 emmc-ddr4
+            ARTIFACT/emmc-bl31-uboot.fip := copy-file $(TOPDIR)/prebuilt/zbt-z8102ax-v2/fip.bin
           endef
           TARGET_DEVICES += zbt_z8102ax_v2_emmc
           EOF
