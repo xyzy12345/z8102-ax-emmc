@@ -7,7 +7,7 @@
 
 / {
 	model = "ZBT Z8102AX V2 (EMMC)";
-	compatible = "zbt,z8102ax-v2", "zbtlink,z8102ax-emmc", "mediatek,mt7981";
+	compatible = "zbt,z8102ax-v2", "zbtlink,z8102ax-emmc", "mediatek,mt7981-emmc-rfb";
 
 	aliases {
 		led-boot = &led_blue;
