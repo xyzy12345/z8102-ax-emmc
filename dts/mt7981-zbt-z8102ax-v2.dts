@@ -168,7 +168,7 @@
 							#nvmem-cell-cells = <1>;
 						};
 
-						phy_calibration: calibration@18000 {
+						phy_cal_data: calibration@18000 {
 							reg = <0x18000 0x1000>;
 						};
 					};
@@ -212,7 +212,7 @@
 			compatible = "ethernet-phy-id03a2.9461";
 			reg = <0>;
 			phy-mode = "gmii";
-			nvmem-cells = <&phy_calibration>;
+			nvmem-cells = <&phy_cal_data>;
 			nvmem-cell-names = "phy-cal-data";
 		};
 
