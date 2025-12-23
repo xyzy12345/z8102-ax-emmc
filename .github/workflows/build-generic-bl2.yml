@@ -91,7 +91,6 @@ jobs:
             DEVICE_VENDOR := Zbtlink
             DEVICE_MODEL := ZBT-Z8102AX-V2 (eMMC)
             DEVICE_DTS := mt7981-zbt-z8102ax-v2
-            DEVICE_DTS_DIR := ../dts
             DEVICE_PACKAGES := kmod-mt7915e kmod-mt7981-firmware mt7981-wo-firmware kmod-usb3 kmod-usb-storage e2fsprogs f2fsck mkf2fs
             IMAGES := sysupgrade.bin
             IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
@@ -106,17 +105,27 @@ jobs:
           mkdir -p prebuilt/zbt-z8102ax-v2
           cp ../prebuilt/zbt-z8102ax-v2/fip.bin prebuilt/zbt-z8102ax-v2/
 
-          # 4. 验证设备定义是否添加成功
+          # 4. 验证文件结构
+          echo "=== 验证文件结构 ==="
+          echo "DTS文件："
+          ls -lh target/linux/mediatek/dts/mt7981-zbt-z8102ax-v2.dts || echo "✗ DTS文件未找到"
+          echo ""
+          echo "FIP文件："
+          ls -lh prebuilt/zbt-z8102ax-v2/fip.bin || echo "✗ FIP文件未找到"
+          
+          # 5. 验证设备定义是否添加成功
+          echo ""
           echo "=== 验证设备定义 ==="
           if grep -q "define Device/zbt_z8102ax_v2_emmc" target/linux/mediatek/image/filogic.mk; then
             echo "✓ 设备定义已成功添加"
             echo "设备定义内容："
-            grep -A 15 "define Device/zbt_z8102ax_v2_emmc" target/linux/mediatek/image/filogic.mk
+            grep -A 14 "define Device/zbt_z8102ax_v2_emmc" target/linux/mediatek/image/filogic.mk
           else
             echo "✗ 错误：设备定义添加失败"
             exit 1
           fi
 
+          echo ""
           echo "设备集成完成"
 
       - name: Configure and build
@@ -191,20 +200,35 @@ jobs:
           done
 
           # 开始编译
-          echo "开始编译..."
+          echo "=== 开始编译 ==="
+          echo "编译开始时间: $(date)"
           make -j$(($(nproc) + 1)) V=s 2>&1 | tee build.log
+          BUILD_EXIT_CODE=${PIPESTATUS[0]}
+          echo "编译结束时间: $(date)"
+          echo "编译退出代码: $BUILD_EXIT_CODE"
 
           # 检查结果
+          echo ""
+          echo "=== 检查编译结果 ==="
           if [ -f "bin/targets/mediatek/filogic/openwrt-mediatek-filogic-zbt_z8102ax_v2_emmc-squashfs-sysupgrade.bin" ]; then
-            echo "编译成功！"
+            echo "✓ 编译成功！"
+            echo ""
             echo "输出文件："
             ls -lh bin/targets/mediatek/filogic/*.bin
-            ls -lh bin/targets/mediatek/filogic/*.fip 2>/dev/null || true
+            echo ""
+            echo "Artifacts文件："
+            ls -lh bin/targets/mediatek/filogic/*.fip 2>/dev/null || echo "注意: 未找到.fip文件"
           else
-            echo "编译失败"
+            echo "✗ 编译失败"
+            echo ""
             echo "查找可能的输出文件："
-            find bin/targets/mediatek/filogic/ -name "*z8102ax*" -o -name "*.bin" | head -10
+            find bin/targets/mediatek/filogic/ -type f 2>/dev/null | head -20 || echo "无输出文件"
+            echo ""
+            echo "=== 构建日志最后100行 ==="
             tail -100 build.log
+            echo ""
+            echo "=== 检查错误信息 ==="
+            grep -i "error:" build.log | tail -20 || echo "未找到明确的错误信息"
             exit 1
           fi
 
